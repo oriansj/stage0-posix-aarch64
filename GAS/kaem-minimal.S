@@ -35,7 +35,7 @@ _start:
     cmp x1, 0                   // Check for missing output
     b.ne _start_out             // Have real input
     add x2, sp, 24              // Nope, envp is here!
-    adr x1, default_file        // Use "kaem.run"
+    adr x1, default_file        // Use "kaem.aarch64"
 
 _start_out:
     adr x9, envp

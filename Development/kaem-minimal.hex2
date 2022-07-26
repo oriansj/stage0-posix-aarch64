@@ -70,7 +70,7 @@ B7 00                          # e_machine Indicating AArch64
     40000054                    ;    SKIP_INST_EQ                # Have real input
     ^~_start_out 14             ;    ^~_start_out FBRANCH
     e2630091                    ;    ADD_X2_SP_24                # Nope, envp is here!
-    41000018                    ;    LOAD_W1_AHEAD               # Use "kaem.run"
+    41000018                    ;    LOAD_W1_AHEAD               # Use "kaem.aarch64"
     02000014                    ;    SKIP_32_DATA
     &default_file               ;    &default_file
 
