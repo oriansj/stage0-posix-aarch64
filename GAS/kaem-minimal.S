@@ -260,7 +260,7 @@ collect_string:
 collect_string_loop:
     bl fgetc                    // C = fgetc(input)
     cmp x0, -4                  // if C == EOF
-    b.eq Exit_Failure           // Something went horriably wrong
+    b.eq Exit_Failure           // Something went horribly wrong
 
     cmp x0, 34                  // IF C == '"'
     b.eq collect_string_done    // be done

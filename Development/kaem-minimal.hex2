@@ -343,7 +343,7 @@ B7 00                          # e_machine Indicating AArch64
 :collect_string_loop
     ^~fgetc 94                  ;    ^~fgetc FCALL               # C = fgetc(input)
     1f1000b1                    ;    CMP_X0_TO_MINUS_4           # if C == EOF
-    41000054                    ;    SKIP_INST_NE                # Something went horriably wrong
+    41000054                    ;    SKIP_INST_NE                # Something went horribly wrong
     ^~Exit_Failure 17           ;    ^~Exit_Failure RBRANCH
 
     1f8800f1                    ;    CMP_X0_TO_34                # IF C == '\"'
@@ -497,7 +497,7 @@ B7 00                          # e_machine Indicating AArch64
     0000000000000000 0000000000000000 0000000000000000 0000000000000000     ; NULL64 NULL64 NULL64 NULL64
 
 :default_file
-    6B 61 65 6D 2E 61 61 72 63 68 36 34 00  ; "kaem.run"
+    6B 61 65 6D 2E 61 61 72 63 68 36 34 00  ; "kaem.aarch64"
 :prefix
     20 2B 3E 20 00              ; " +> "
 :hard

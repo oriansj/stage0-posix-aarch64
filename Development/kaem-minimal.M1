@@ -404,7 +404,7 @@ DEFINE RBRANCH 17
 :collect_string_loop
     ^~fgetc FCALL               # C = fgetc(input)
     CMP_X0_TO_MINUS_4           # if C == EOF
-    SKIP_INST_NE                # Something went horriably wrong
+    SKIP_INST_NE                # Something went horribly wrong
     ^~Exit_Failure RBRANCH
 
     CMP_X0_TO_34                # IF C == '\"'
