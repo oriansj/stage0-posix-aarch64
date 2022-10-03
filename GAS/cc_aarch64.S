@@ -1048,7 +1048,7 @@ statement_if:
     b statement_done            // be done
 
 statement_do:
-    adr x0, do_string           // Using "do
+    adr x0, do_string           // Using "do"
     bl match                    // IF global_token->S == "do"
     cmp x0, 0                   // then we have a do statement
     b.ne statement_while        // otherwise try WHILE
