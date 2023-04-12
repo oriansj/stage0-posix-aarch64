@@ -1718,7 +1718,7 @@ DEFINE RBRANCH 17
 
 :statement_local
     SET_X0_FROM_X1                      # put global_token->S in the right place
-    LOAD_W1_AHEAD                       # pointer to primative types
+    LOAD_W1_AHEAD                       # pointer to primitive types
     SKIP_32_DATA
     &prim_types
     ^~lookup_type FCALL                 # See if found

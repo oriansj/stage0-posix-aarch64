@@ -1019,7 +1019,7 @@ statement_label:
 
 statement_local:
     mov x0, x1                  // put global_token->S in the right place
-    adr x1, prim_types          // pointer to primative types
+    adr x1, prim_types          // pointer to primitive types
     bl lookup_type              // See if found
     cmp x0, 0                   // IF NULL == lookup_type(global_token->S, prim_types)
     b.ne statement_local_success // Sweet a new local
