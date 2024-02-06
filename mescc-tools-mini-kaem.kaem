@@ -128,6 +128,7 @@
 ./AArch64/artifact/M2 --architecture aarch64 \
 	-f ./M2libc/sys/types.h \
 	-f ./M2libc/stddef.h \
+	-f ./M2libc/sys/utsname.h \
 	-f ./M2libc/aarch64/linux/unistd.c \
 	-f ./M2libc/aarch64/linux/fcntl.c \
 	-f ./M2libc/fcntl.c \
@@ -166,6 +167,7 @@
 	-f ./M2libc/sys/types.h \
 	-f ./M2libc/stddef.h \
 	-f ./M2libc/string.c \
+	-f ./M2libc/sys/utsname.h \
 	-f ./M2libc/aarch64/linux/unistd.c \
 	-f ./M2libc/aarch64/linux/fcntl.c \
 	-f ./M2libc/fcntl.c \
@@ -201,6 +203,7 @@
 ./AArch64/artifact/M2 --architecture aarch64 \
 	-f ./M2libc/sys/types.h \
 	-f ./M2libc/stddef.h \
+	-f ./M2libc/sys/utsname.h \
 	-f ./M2libc/aarch64/linux/unistd.c \
 	-f ./M2libc/aarch64/linux/fcntl.c \
 	-f ./M2libc/fcntl.c \
@@ -241,6 +244,7 @@
 	-f ./M2libc/sys/types.h \
 	-f ./M2libc/stddef.h \
 	-f ./M2libc/string.c \
+	-f ./M2libc/sys/utsname.h \
 	-f ./M2libc/aarch64/linux/unistd.c \
 	-f ./M2libc/aarch64/linux/fcntl.c \
 	-f ./M2libc/fcntl.c \
