@@ -1227,6 +1227,147 @@ DEFINE RBRANCH 17
     ^~program_done FBRANCH
 
     LDR_X1_[X0,16]                      # GLOBAL_TOKEN->S
+    LOAD_W0_AHEAD                       # "enum"
+    SKIP_32_DATA
+    &enum
+    ^~match FCALL                       # IF GLOBAL_TOKEN->S == "enum"
+    CMP_X0_TO_0                         # If true
+    SKIP_INST_EQ                        # Looks like not an enum
+    ^~constant_value FBRANCH
+
+    # Deal with minimal anonymous enums
+    LOAD_W9_AHEAD                       # Using global_token
+    SKIP_32_DATA
+    &global_token
+    LDR_X0_[X9]
+    LDR_X0_[X0]                         # global_token->next
+    LOAD_W9_AHEAD                       # global_token = global_token->next
+    SKIP_32_DATA
+    &global_token
+    STR_X0_[X9]
+
+    LOAD_W0_AHEAD                       # Using "ERROR in enum\nExpected {\n"
+    SKIP_32_DATA
+    &enum_error_open_curly
+    LOAD_W1_AHEAD                       # Using "{"
+    SKIP_32_DATA
+    &open_curly_brace
+    ^~require_match FCALL               # Require match and skip
+
+:enumerator
+    LOAD_W9_AHEAD                       # Using global_token
+    SKIP_32_DATA
+    &global_token
+    LDR_X0_[X9]
+
+    LDR_X0_[X0,16]                      # global_token->S
+    SET_X1_TO_0                         # NULL
+    LOAD_W9_AHEAD                       # global_constant_list
+    SKIP_32_DATA
+    &global_constant_list
+    LDR_X2_[X9]
+    ^~sym_declare FCALL                 # Declare that constant
+    LOAD_W9_AHEAD                       # global_constant_list = sym_declare(global_token->s, NULL, global_constant_list)#
+    SKIP_32_DATA
+    &global_constant_list
+    STR_X0_[X9]
+
+    LOAD_W9_AHEAD                       # Using global_token
+    SKIP_32_DATA
+    &global_token
+    LDR_X0_[X9]
+    LDR_X0_[X0]                         # global_token->next
+    LOAD_W9_AHEAD                       # global_token = global_token->next
+    SKIP_32_DATA
+    &global_token
+    STR_X0_[X9]
+
+    LOAD_W0_AHEAD                       # Using "ERROR in enum\nExpected =\n"
+    SKIP_32_DATA
+    &enum_error_equal
+    LOAD_W1_AHEAD                       # Using "="
+    SKIP_32_DATA
+    &equal
+    ^~require_match FCALL               # Require match and skip
+
+    LOAD_W9_AHEAD                       # global_constant_list
+    SKIP_32_DATA
+    &global_constant_list
+    LDR_X0_[X9]
+    LOAD_W9_AHEAD                       # Using global_token
+    SKIP_32_DATA
+    &global_token
+    LDR_X1_[X9]
+    STR_X1_[X0,32]                      # global_constant_list->arguments = global_token
+
+    LOAD_W9_AHEAD                       # Using global_token
+    SKIP_32_DATA
+    &global_token
+    LDR_X0_[X9]
+    LDR_X0_[X0]                         # global_token->next
+    LOAD_W9_AHEAD                       # global_token = global_token->next
+    SKIP_32_DATA
+    &global_token
+    STR_X0_[X9]
+
+    LDR_X1_[X0,16]                      # GLOBAL_TOKEN->S
+    LOAD_W0_AHEAD                       # ","
+    SKIP_32_DATA
+    &comma
+    ^~match FCALL                       # IF GLOBAL_TOKEN->S == ","
+    CMP_X0_TO_0                         # If true
+    SKIP_INST_EQ                        # No more enumerators
+    ^~enum_end FBRANCH
+
+    # Skip comma
+    LOAD_W9_AHEAD                       # Using global_token
+    SKIP_32_DATA
+    &global_token
+    LDR_X0_[X9]
+    LDR_X0_[X0]                         # global_token->next
+    LOAD_W9_AHEAD                       # global_token = global_token->next
+    SKIP_32_DATA
+    &global_token
+    STR_X0_[X9]
+
+    LDR_X1_[X0,16]                      # GLOBAL_TOKEN->S
+    LOAD_W0_AHEAD                       # "}"
+    SKIP_32_DATA
+    &close_curly_brace
+    ^~match FCALL                       # IF GLOBAL_TOKEN->S == "}"
+    CMP_X0_TO_0                         # If true
+    SKIP_INST_EQ                        # There are no additional enumerators
+    ^~enumerator RBRANCH
+
+:enum_end
+    LOAD_W0_AHEAD                       # Using "ERROR in enum\nExpected }\n"
+    SKIP_32_DATA
+    &enum_error_close_curly
+    LOAD_W1_AHEAD                       # Using "}"
+    SKIP_32_DATA
+    &close_curly_brace
+    ^~require_match FCALL               # Make sure it has the required
+
+    LOAD_W0_AHEAD                       # Using "ERROR in enum\nExpected }\n"
+    SKIP_32_DATA
+    &enum_error_semi_colon
+    LOAD_W1_AHEAD                       # Using "}"
+    SKIP_32_DATA
+    &semicolon
+    ^~require_match FCALL               # Make sure it has the required
+
+    ^~new_type RBRANCH                  # go around again
+
+:constant_value
+    LOAD_W9_AHEAD                       # Using global_token
+    SKIP_32_DATA
+    &global_token
+    LDR_X0_[X9]
+    CMP_X0_TO_0                         # Check if NULL
+    SKIP_INST_NE                        # Be done if null
+    ^~program_done FBRANCH
+
+    LDR_X1_[X0,16]                      # GLOBAL_TOKEN->S
     LOAD_W0_AHEAD                       # "CONSTANT"
     SKIP_32_DATA
     &constant
@@ -6651,6 +6792,7 @@ DEFINE RBRANCH 17
 ;; Keywords
 :union  "union"
 :struct  "struct"
+:enum  "enum"
 :constant  "CONSTANT"
 :main_string  "main"
 :argc_string  "argc"
@@ -6738,6 +6880,19 @@ DEFINE RBRANCH 17
 :program_string_1
 "
 NULL
+"
+
+:enum_error_open_curly "ERROR in enum
+Expected {
+"
+:enum_error_equal "ERROR in enum
+Expected =
+"
+:enum_error_close_curly "ERROR in enum
+Expected }
+"
+:enum_error_semi_colon "ERROR in enum
+Expected ;
 "
 
 :declare_function_string_0  "# Defining function "
