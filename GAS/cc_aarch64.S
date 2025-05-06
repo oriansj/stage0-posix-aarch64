@@ -656,6 +656,10 @@ fputc:
     pop x1
     ret
 
+enum_error_open_curly: .asciz "ERROR in enum\nExpected {\n"
+enum_error_equal: .asciz "ERROR in enum\nExpected =\n"
+enum_error_close_curly: .asciz "ERROR in enum\nExpected }\n"
+enum_error_semi_colon: .asciz "ERROR in enum\nExpected ;\n"
 
 // program function
 // receives nothing, returns nothing
@@ -667,6 +671,93 @@ program:
     push x2                     // Protect X2
 
 new_type:
+    adr x9, global_token        // Using global_token
+    ldr x0, [x9]
+    cmp x0, 0                   // Check if NULL
+    b.eq program_done           // Be done if null
+
+    ldr x1, [x0,16]             // GLOBAL_TOKEN->S
+    adr x0, enum                // "enum"
+    bl match                    // IF GLOBAL_TOKEN->S == "enum"
+    cmp x0, 0                   // If true
+    b.ne constant_value         // Looks like not an enum
+
+    // Deal with minimal anonymous enums
+    adr x9, global_token           // Using global_token
+    ldr x0, [x9]
+    ldr x0, [x0]                   // global_token->next
+    adr x9, global_token           // global_token = global_token->next
+    str x0, [x9]
+
+    adr x0, enum_error_open_curly  // Using "ERROR in enum\nExpected {\n"
+    adr x1, open_curly_brace       // Using "{"
+    bl require_match               // Require match and skip
+
+enumerator:
+    adr x9, global_token           // Using global_token
+    ldr x0, [x9]
+
+    ldr x0, [x0,16]                // global_token->S
+    mov x1, 0                      // NULL
+    adr x9, global_constant_list   // global_constant_list
+    ldr x2, [x9]
+    bl sym_declare                 // Declare that constant
+    adr x9, global_constant_list   // global_constant_list = sym_declare(global_token->s, NULL, global_constant_list);
+    str x0, [x9]
+
+    adr x9, global_token           // Using global_token
+    ldr x0, [x9]
+    ldr x0, [x0]                   // global_token->next
+    adr x9, global_token           // global_token = global_token->next
+    str x0, [x9]
+
+    adr x0, enum_error_equal       // Using "ERROR in enum\nExpected =\n"
+    adr x1, equal                  // Using "="
+    bl require_match               // Require match and skip
+
+    adr x9, global_constant_list   // global_constant_list
+    ldr x0, [x9]
+    adr x9, global_token           // Using global_token
+    ldr x1, [x9]
+    str x1, [x0,32]                // global_constant_list->arguments = global_token
+
+    adr x9, global_token           // Using global_token
+    ldr x0, [x9]
+    ldr x0, [x0]                   // global_token->next
+    adr x9, global_token           // global_token = global_token->next
+    str x0, [x9]
+
+    ldr x1, [x0,16]                // GLOBAL_TOKEN->S
+    adr x0, comma                  // ","
+    bl match                       // IF GLOBAL_TOKEN->S == ","
+    cmp x0, 0                      // If true
+    b.ne enum_end                  // No more enumerators
+
+    // Skip comma
+    adr x9, global_token           // Using global_token
+    ldr x0, [x9]
+    ldr x0, [x0]                   // global_token->next
+    adr x9, global_token           // global_token = global_token->next
+    str x0, [x9]
+
+    ldr x1, [x0,16]                // GLOBAL_TOKEN->S
+    adr x0, close_curly_brace      // "}"
+    bl match                       // IF GLOBAL_TOKEN->S == "}"
+    cmp x0, 0                      // If true
+    b.ne enumerator                // There are additional enumerators
+
+enum_end:
+    adr x0, enum_error_close_curly // Using "ERROR in enum\nExpected }\n"
+    adr x1, close_curly_brace      // Using "}"
+    bl require_match               // Require match and skip
+
+    adr x0, enum_error_semi_colon  // Using "ERROR in enum\nExpected ;\n"
+    adr x1, semicolon              // Using ";"
+    bl require_match               // Require match and skip
+
+    b new_type
+
+constant_value:
     adr x9, global_token        // Using global_token
     ldr x0, [x9]
     cmp x0, 0                   // Check if NULL
@@ -4777,6 +4868,7 @@ strings_list: .quad 0
 // Keywords
 union: .asciz "union"
 struct: .asciz "struct"
+enum: .asciz "enum"
 constant: .asciz "CONSTANT"
 main_string: .asciz "main"
 argc_string: .asciz "argc"
