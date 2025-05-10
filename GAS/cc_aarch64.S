@@ -274,7 +274,7 @@ get_token_comment_line:
     b.ne get_token_done         // keep if just '/'
 
     // Deal with // line comment
-    bl fgetc                    // drop to match
+    bl purge_macro              // discard all until newline
     adr x9, C                   // Set C
     str x0, [x9]
     b reset                     // throw away, try again
@@ -680,7 +680,7 @@ new_type:
     adr x0, enum                // "enum"
     bl match                    // IF GLOBAL_TOKEN->S == "enum"
     cmp x0, 0                   // If true
-    b.ne constant_value         // Looks like not an enum
+    b.ne program_else           // Looks like not an enum
 
     // Deal with minimal anonymous enums
     adr x9, global_token           // Using global_token
@@ -756,43 +756,6 @@ enum_end:
     bl require_match               // Require match and skip
 
     b new_type
-
-constant_value:
-    adr x9, global_token        // Using global_token
-    ldr x0, [x9]
-    cmp x0, 0                   // Check if NULL
-    b.eq program_done           // Be done if null
-
-    ldr x1, [x0,16]             // GLOBAL_TOKEN->S
-    adr x0, constant            // "CONSTANT"
-    bl match                    // IF GLOBAL_TOKEN->S == "CONSTANT"
-    cmp x0, 0                   // If true
-    b.ne program_else           // Looks like not a constant
-
-    // Deal with minimal constant case
-    adr x9, global_token        // Using global_token
-    ldr x0, [x9]
-    ldr x0, [x0]                // global_token->next
-    adr x9, global_token        // global_token = global_token->next
-    str x0, [x9]
-
-    ldr x0, [x0,16]             // global_token->S
-    mov x1, 0                   // NULL
-    adr x9, global_constant_list // global_constant_list
-    ldr x2, [x9]
-    bl sym_declare              // Declare that constant
-    adr x9, global_constant_list // global_constant_list = sym_declare(global_token->s, NULL, global_constant_list);
-    str x0, [x9]
-
-    adr x9, global_token        // Using global_token
-    ldr x1, [x9]
-    ldr x1, [x1]                // global_token->next
-    str x1, [x0,32]             // global_constant_list->arguments = global_token->next
-
-    ldr x1, [x1]                // global_token->next->next
-    adr x9, global_token        // global_token = global_token->next->next;
-    str x1, [x9]
-    b new_type                  // go around again
 
 program_else:
     bl type_name                // Figure out the type_size
@@ -4869,7 +4832,6 @@ strings_list: .quad 0
 union: .asciz "union"
 struct: .asciz "struct"
 enum: .asciz "enum"
-constant: .asciz "CONSTANT"
 main_string: .asciz "main"
 argc_string: .asciz "argc"
 argv_string: .asciz "argv"
