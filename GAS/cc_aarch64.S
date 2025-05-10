@@ -274,7 +274,7 @@ get_token_comment_line:
     b.ne get_token_done         // keep if just '/'
 
     // Deal with // line comment
-    bl fgetc                    // drop to match
+    bl purge_macro              // discard all until newline
     adr x9, C                   // Set C
     str x0, [x9]
     b reset                     // throw away, try again
@@ -680,7 +680,7 @@ new_type:
     adr x0, enum                // "enum"
     bl match                    // IF GLOBAL_TOKEN->S == "enum"
     cmp x0, 0                   // If true
-    b.ne constant_value         // Looks like not an enum
+    b.ne program_else           // Looks like not an enum
 
     // Deal with minimal anonymous enums
     adr x9, global_token           // Using global_token
@@ -756,43 +756,6 @@ enum_end:
     bl require_match               // Require match and skip
 
     b new_type
-
-constant_value:
-    adr x9, global_token        // Using global_token
-    ldr x0, [x9]
-    cmp x0, 0                   // Check if NULL
-    b.eq program_done           // Be done if null
-
-    ldr x1, [x0,16]             // GLOBAL_TOKEN->S
-    adr x0, constant            // "CONSTANT"
-    bl match                    // IF GLOBAL_TOKEN->S == "CONSTANT"
-    cmp x0, 0                   // If true
-    b.ne program_else           // Looks like not a constant
-
-    // Deal with minimal constant case
-    adr x9, global_token        // Using global_token
-    ldr x0, [x9]
-    ldr x0, [x0]                // global_token->next
-    adr x9, global_token        // global_token = global_token->next
-    str x0, [x9]
-
-    ldr x0, [x0,16]             // global_token->S
-    mov x1, 0                   // NULL
-    adr x9, global_constant_list // global_constant_list
-    ldr x2, [x9]
-    bl sym_declare              // Declare that constant
-    adr x9, global_constant_list // global_constant_list = sym_declare(global_token->s, NULL, global_constant_list);
-    str x0, [x9]
-
-    adr x9, global_token        // Using global_token
-    ldr x1, [x9]
-    ldr x1, [x1]                // global_token->next
-    str x1, [x0,32]             // global_constant_list->arguments = global_token->next
-
-    ldr x1, [x1]                // global_token->next->next
-    adr x9, global_token        // global_token = global_token->next->next;
-    str x1, [x9]
-    b new_type                  // go around again
 
 program_else:
     bl type_name                // Figure out the type_size
@@ -4201,34 +4164,10 @@ create_struct_iter:
     cmp x0, 125                 // IF global_token->S[0] == "}"
     b.eq create_struct_done     // be done
 
-    // Looks like we are adding members
-    // Lets see if it is a union
-    adr x9, global_token        // Using global_token
-    ldr x0, [x9]
-    ldr x0, [x0,16]             // global_token->S
-    adr x1, union               // Using "union"
-    bl match                    // IF match(global_token->s, "union")
-    cmp x0, 0                   // Deal with union
-    b.ne create_struct_single   // Otherwise deal with singles
-
-    // Deal with union
-    mov x0, x5                  // Put last in right place
-    mov x1, x2                  // put offset in right place
-    bl build_union              // ASSEMBLE
-    mov x5, x0                  // last = build_union(last, offset)
-    add x2, x2, x6              // offset = offset + member_size
-
-    adr x0, create_struct_string_1 // Using "ERROR in create_struct\n Missing ;\n"
-    adr x1, semicolon           // Using ";"
-    bl require_match            // Make sure we have it
-    b create_struct_iter        // keep going
-
-create_struct_single:
-    // deal with singles
     mov x0, x5                  // Put last in right place
     mov x1, x2                  // put offset in right place
     bl build_member             // ASSEMBLE
-    mov x5, x0                  // last = build_union(last, offset)
+    mov x5, x0                  // last = build_member(last, offset)
     add x2, x2, x6              // offset = offset + member_size
 
     adr x0, create_struct_string_1 // Using "ERROR in create_struct\n Missing ;\n"
@@ -4385,75 +4324,6 @@ build_member_done:
     str x2, [x3,40]             // I->TYPE = MEMBER_TYPE
     mov x0, x3                  // Return I
 
-    pop x3                      // Restore X3
-    pop x2                      // Restore X2
-    pop x1                      // Restore X1
-    pop x30
-    ret
-
-
-// build_union function
-// Receives struct type* last in X0, int offset in X1 and global member_size in X6
-// Updates member_size in X6 and returns struct type* LAST in X0
-// Uses X2 for struct type* last, X3 for int offset, X5 for int size and X6 for int member_size
-build_union:
-    push x30
-    push x1                     // Protect X1
-    push x2                     // Protect X2
-    push x3                     // Protect X3
-    push x5                     // Protect X5
-    mov x2, x0                  // Put LAST in right spot
-    mov x3, x1                  // Put OFFSET in right spot
-    mov x5, 0                   // SIZE = 0
-
-    adr x9, global_token        // Using global_token
-    ldr x0, [x9]
-    ldr x0, [x0]                // global_token->NEXT
-    adr x9, global_token        // global_token = global_token->NEXT
-    str x0, [x9]
-
-    adr x0, build_union_string_0 // Using "ERROR in build_union\nMissing {\n"
-    adr x1, open_curly_brace    // Using "{"
-    bl require_match            // Make sure we have it
-
-build_union_iter:
-    adr x9, global_token        // Using global_token
-    ldr x0, [x9]
-    ldr x0, [x0,16]             // global_token->S
-    ldrb w0, [x0]               // global_token->S[0]
-    cmp x0, 125                 // IF global_token->S[0] == "}"
-    b.eq build_union_done       // Be done
-
-    // Collect union member
-    mov x0, x2                  // Passing LAST
-    mov x1, x3                  // Passing offset
-    bl build_member             // build_member(last, offset)
-    mov x2, x0                  // last = build_member(last, offset)
-
-    cmp x5, x6                  // IF member_size > size
-    b.gt build_union_size       // Then update size
-
-    // deal with member_size > size
-    mov x5, x6                  // SIZE = MEMBER_SIZE
-
-build_union_size:
-    adr x0, build_union_string_1 // Using "ERROR in build_union\nMissing ;\n"
-    adr x1, semicolon           // Using ";"
-    bl require_match            // Make sure we have it
-    b build_union_iter          // Keep going
-
-build_union_done:
-    mov x6, x5                  // MEMBER_SIZE = SIZE
-
-    adr x9, global_token        // Using global_token
-    ldr x0, [x9]
-    ldr x0, [x0]                // global_token->NEXT
-    adr x9, global_token        // global_token = global_token->NEXT
-    str x0, [x9]
-
-    mov x0, x2                  // Return last
-
-    pop x5                      // Restore X5
     pop x3                      // Restore X3
     pop x2                      // Restore X2
     pop x1                      // Restore X1
@@ -4866,10 +4736,8 @@ strings_list: .quad 0
 
     .section .rodata
 // Keywords
-union: .asciz "union"
 struct: .asciz "struct"
 enum: .asciz "enum"
-constant: .asciz "CONSTANT"
 main_string: .asciz "main"
 argc_string: .asciz "argc"
 argv_string: .asciz "argv"
