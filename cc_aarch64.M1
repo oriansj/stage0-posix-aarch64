@@ -5966,43 +5966,10 @@ DEFINE RBRANCH 17
     SKIP_INST_NE                        # be done
     ^~create_struct_done FBRANCH
 
-    # Looks like we are adding members
-    # Lets see if it is a union
-    LOAD_W9_AHEAD                       # Using global_token
-    SKIP_32_DATA
-    &global_token
-    LDR_X0_[X9]
-    LDR_X0_[X0,16]                      # global_token->S
-    LOAD_W1_AHEAD                       # Using "union"
-    SKIP_32_DATA
-    &union
-    ^~match FCALL                       # IF match(global_token->s, "union")
-    CMP_X0_TO_0                         # Deal with union
-    SKIP_INST_EQ                        # Otherwise deal with singles
-    ^~create_struct_single FBRANCH
-
-    # Deal with union
-    SET_X0_FROM_X5                      # Put last in right place
-    SET_X1_FROM_X2                      # put offset in right place
-    ^~build_union FCALL                 # ASSEMBLE
-    SET_X5_FROM_X0                      # last = build_union(last, offset)
-    ADD_X2_X2_X6                        # offset = offset + member_size
-
-    LOAD_W0_AHEAD                       # Using "ERROR in create_struct\n Missing ;\n"
-    SKIP_32_DATA
-    &create_struct_string_1
-    LOAD_W1_AHEAD                       # Using ";"
-    SKIP_32_DATA
-    &semicolon
-    ^~require_match RCALL               # Make sure we have it
-    ^~create_struct_iter RBRANCH        # keep going
-
-:create_struct_single
-    # deal with singles
     SET_X0_FROM_X5                      # Put last in right place
     SET_X1_FROM_X2                      # put offset in right place
     ^~build_member FCALL                # ASSEMBLE
-    SET_X5_FROM_X0                      # last = build_union(last, offset)
+    SET_X5_FROM_X0                      # last = build_member(last, offset)
     ADD_X2_X2_X6                        # offset = offset + member_size
 
     LOAD_W0_AHEAD                       # Using "ERROR in create_struct\n Missing ;\n"
@@ -6202,95 +6169,6 @@ DEFINE RBRANCH 17
     STR_X2_[X3,40]                      # I->TYPE = MEMBER_TYPE
     SET_X0_FROM_X3                      # Return I
 
-    POP_X3                              # Restore X3
-    POP_X2                              # Restore X2
-    POP_X1                              # Restore X1
-    POP_LR
-    RETURN
-
-
-# build_union function
-# Receives struct type* last in X0, int offset in X1 and global member_size in X6
-# Updates member_size in X6 and returns struct type* LAST in X0
-# Uses X2 for struct type* last, X3 for int offset, X5 for int size and X6 for int member_size
-:build_union
-    PUSH_LR
-    PUSH_X1                             # Protect X1
-    PUSH_X2                             # Protect X2
-    PUSH_X3                             # Protect X3
-    PUSH_X5                             # Protect X5
-    SET_X2_FROM_X0                      # Put LAST in right spot
-    SET_X3_FROM_X1                      # Put OFFSET in right spot
-    SET_X5_TO_0                         # SIZE = 0
-
-    LOAD_W9_AHEAD                       # Using global_token
-    SKIP_32_DATA
-    &global_token
-    LDR_X0_[X9]
-    LDR_X0_[X0]                         # global_token->NEXT
-    LOAD_W9_AHEAD                       # global_token = global_token->NEXT
-    SKIP_32_DATA
-    &global_token
-    STR_X0_[X9]
-
-    LOAD_W0_AHEAD                       # Using "ERROR in build_union\nMissing {\n"
-    SKIP_32_DATA
-    &build_union_string_0
-    LOAD_W1_AHEAD                       # Using "{"
-    SKIP_32_DATA
-    &open_curly_brace
-    ^~require_match RCALL               # Make sure we have it
-
-:build_union_iter
-    LOAD_W9_AHEAD                       # Using global_token
-    SKIP_32_DATA
-    &global_token
-    LDR_X0_[X9]
-    LDR_X0_[X0,16]                      # global_token->S
-    LDR_BYTE_W0_[X0]                    # global_token->S[0]
-    CMP_X0_TO_125                       # IF global_token->S[0] == "}"
-    SKIP_INST_NE                        # Be done
-    ^~build_union_done FBRANCH
-
-    # Collect union member
-    SET_X0_FROM_X2                      # Passing LAST
-    SET_X1_FROM_X3                      # Passing offset
-    ^~build_member RCALL                # build_member(last, offset)
-    SET_X2_FROM_X0                      # last = build_member(last, offset)
-
-    CMP_X5_X6                           # IF member_size > size
-    SKIP_INST_LE                        # Then update size
-    ^~build_union_size FBRANCH
-
-    # deal with member_size > size
-    SET_X5_FROM_X6                      # SIZE = MEMBER_SIZE
-
-:build_union_size
-    LOAD_W0_AHEAD                       # Using "ERROR in build_union\nMissing ;\n"
-    SKIP_32_DATA
-    &build_union_string_1
-    LOAD_W1_AHEAD                       # Using ";"
-    SKIP_32_DATA
-    &semicolon
-    ^~require_match RCALL               # Make sure we have it
-    ^~build_union_iter RBRANCH          # Keep going
-
-:build_union_done
-    SET_X6_FROM_X5                      # MEMBER_SIZE = SIZE
-
-    LOAD_W9_AHEAD                       # Using global_token
-    SKIP_32_DATA
-    &global_token
-    LDR_X0_[X9]
-    LDR_X0_[X0]                         # global_token->NEXT
-    LOAD_W9_AHEAD                       # global_token = global_token->NEXT
-    SKIP_32_DATA
-    &global_token
-    STR_X0_[X9]
-
-    SET_X0_FROM_X2                      # Return last
-
-    POP_X5                              # Restore X5
     POP_X3                              # Restore X3
     POP_X2                              # Restore X2
     POP_X1                              # Restore X1
@@ -6735,7 +6613,6 @@ DEFINE RBRANCH 17
 :strings_list NULL64
 
 ;; Keywords
-:union  "union"
 :struct  "struct"
 :enum  "enum"
 :main_string  "main"
@@ -7291,13 +7168,6 @@ SKIP_32_DATA
 
 
 :build_member_string_0  "Struct only supports [num] form
-"
-
-:build_union_string_0  "ERROR in build_union
-Missing {
-"
-:build_union_string_1  "ERROR in build_union
-Missing ;
 "
 
 :debug_list_string0  "Token_list node at address: "
