@@ -2718,7 +2718,7 @@ primary_expr_not:
     adr x0, postfix_expr        // Passing postfix_expr
     bl common_recursion         // Get what it is notting
 
-    adr x0, primary_expr_string_3 // Using "XOR_X0_X1_X0\n"
+    adr x0, primary_expr_string_3 // Using "CMP_X1_X0\nSET_X0_TO_1\nSKIP_INST_HI\nSET_X0_TO_0\n"
     bl emit_out                 // Emit it
     b primary_expr_done         // Be done
 
@@ -4941,7 +4941,7 @@ postfix_expr_arrow_string_3: .asciz "DEREF_X0\n"
 primary_expr_string_0: .asciz "SET_X0_TO_0\n"
 primary_expr_string_1: .asciz "SUB_X0_X1_X0\n"
 primary_expr_string_2: .asciz "SET_X0_TO_1\n"
-primary_expr_string_3: .asciz "XOR_X0_X1_X0\n"
+primary_expr_string_3: .asciz "CMP_X1_X0\nSET_X0_TO_1\nSKIP_INST_HI\nSET_X0_TO_0\n\n"
 primary_expr_string_4: .asciz "MVN_X0\n"
 primary_expr_string_5: .asciz "Error in Primary expression\nDidn't get )\n"
 primary_expr_string_6: .asciz "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"

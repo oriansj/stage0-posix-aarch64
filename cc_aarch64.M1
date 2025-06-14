@@ -4173,7 +4173,7 @@ DEFINE RBRANCH 17
     &postfix_expr
     ^~common_recursion FCALL            # Get what it is notting
 
-    LOAD_W0_AHEAD                       # Using "XOR_X0_X1_X0\n"
+    LOAD_W0_AHEAD                       # Using "CMP_X1_X0\nSET_X0_TO_1\nSKIP_INST_HI\nSET_X0_TO_0\n"
     SKIP_32_DATA
     &primary_expr_string_3
     ^~emit_out FCALL                    # Emit it
@@ -7009,7 +7009,10 @@ ADD_X0_X1_X0
 "
 :primary_expr_string_2  "SET_X0_TO_1
 "
-:primary_expr_string_3  "XOR_X0_X1_X0
+:primary_expr_string_3  "CMP_X1_X0
+SET_X0_TO_1
+SKIP_INST_HI
+SET_X0_TO_0
 "
 :primary_expr_string_4  "MVN_X0
 "
