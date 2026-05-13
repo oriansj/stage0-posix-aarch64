@@ -1063,6 +1063,8 @@ DEFINE RBRANCH 17
     LDR_X1_[X9]
     STR_BYTE_W0_[X1]                    # S[0] = C
     ADD_X1_X1_1                         # S = S + 1
+    SET_X0_TO_0                         # NULL terminate S
+    STR_BYTE_W0_[X1]                    # S[0] = NULL
     LOAD_W9_AHEAD                       # Update S
     SKIP_32_DATA
     &string_index

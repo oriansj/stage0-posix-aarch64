@@ -514,6 +514,8 @@ consume_byte:
     ldr x1, [x9]
     strb w0, [x1]               // S[0] = C
     add x1, x1, 1               // S = S + 1
+    mov x0, 0                   // NULL terminate S
+    strb w0, [x1]               // S[0] = NULL
     adr x9, string_index        // Update S
     str x1, [x9]
     bl fgetc
