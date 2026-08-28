@@ -56,6 +56,8 @@ core:
     mov x3, 0                   // prevent any interactions
     mov x8, 56                  // The syscall number for openat(), aarch64 has no open()
     svc 0                       // Open file!
+    cmp x0, 0                   // Check if the open failed
+    b.lt fail                   // A negative result means error
     mov x13, x0                 // Protect INPUT
 keep:
     mov x2, 0x100000            // set the size of chars we want
@@ -63,6 +65,8 @@ keep:
     mov x0, x13                 // Where are we reading from
     mov x8, #63                 // the syscall number for read
     svc 0                       // call the Kernel
+    cmp x0, 0                   // Check if the read failed
+    b.lt fail                   // A negative result means error
 
     mov x2, x0                  // Number of bytes to write
     mov x1, x14                 // What we are writing
@@ -73,6 +77,12 @@ keep:
     cmp x0, 0x100000            // Check if buffer was fully used
     b.eq keep                   // Keep looping if was full
     b core                      // Otherwise move to next file
+
+fail:
+    // an input file could not be read
+    mov x0, 1                   // All is not well
+    mov x8, #93                 // put the exit syscall number in eax
+    svc 0                       // Call it a bad day
 
 done:
     // program completed Successfully

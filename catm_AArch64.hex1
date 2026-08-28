@@ -102,6 +102,9 @@ B7 00                          # e_machine Indicating AArch64
     030080d2              ; SET_X3_TO_0                 # prevent any interactions
     080780d2              ; SET_X8_TO_SYS_OPENAT        # The syscall number for openat(), aarch64 has no open()
     010000d4              ; SYSCALL                     # Open file!
+    1f0000f1              ; CMP_X0_TO_0                 # Check if the open failed
+    4a000054              ; SKIP_INST_GE                # A negative result means error
+    ^~f 14                ; ^~fail FBRANCH
     ed0300aa              ; SET_X13_FROM_X0             # Protect INPUT
 :k
     0202a0d2              ; SET_X2_TO_0x100000          # set the size of chars we want
@@ -109,6 +112,9 @@ B7 00                          # e_machine Indicating AArch64
     e0030daa              ; SET_X0_FROM_X13             # Where are we reading from
     e80780d2              ; SET_X8_TO_SYS_READ          # the syscall number for read
     010000d4              ; SYSCALL                     # call the Kernel
+    1f0000f1              ; CMP_X0_TO_0                 # Check if the read failed
+    4a000054              ; SKIP_INST_GE                # A negative result means error
+    ^~f 14                ; ^~fail FBRANCH
 
     e20300aa              ; SET_X2_FROM_X0              # Number of bytes to write
     e1030eaa              ; SET_X1_FROM_X14             # What we are writing
@@ -120,6 +126,12 @@ B7 00                          # e_machine Indicating AArch64
     41000054              ; SKIP_INST_NE                # Keep looping if was full
     ^~k 17                ; ^~keep RBRANCH
     ^~c 17                ; ^~core RBRANCH              # Otherwise move to next file
+
+:f
+    # an input file could not be read
+    200080d2              ; SET_X0_TO_1                 # All is not well
+    a80b80d2              ; SET_X8_TO_SYS_EXIT          # put the exit syscall number in eax
+    010000d4              ; SYSCALL                     # Call it a bad day
 
 :d
     # program completed Successfully
