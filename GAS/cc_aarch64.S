@@ -3591,10 +3591,12 @@ common_recursion:
 // require_global_token function
 // Aborts if global_token is NULL before callers dereference it
 require_global_token:
+    push x0                     // x0 holds a live value at some call sites
     adr x9, global_token
     ldr x0, [x9]
     cmp x0, 0
     b.eq Exit_Failure
+    pop x0
     ret
 
 // require_match function
