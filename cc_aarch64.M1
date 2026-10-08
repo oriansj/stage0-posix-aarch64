@@ -5311,6 +5311,7 @@ DEFINE RBRANCH 17
 # require_global_token function
 # Aborts if global_token is NULL before callers dereference it
 :require_global_token
+    PUSH_X0                             # X0 holds a live value at some call sites
     LOAD_W9_AHEAD                       # Using global_token
     SKIP_32_DATA
     &global_token
@@ -5318,6 +5319,7 @@ DEFINE RBRANCH 17
     CMP_X0_TO_0                         # Check for EOF
     SKIP_INST_NE                        # Abort on EOF
     ^~Exit_Failure FBRANCH
+    POP_X0                              # X0 holds a live value at some call sites
     RETURN
 
 # require_match function
