@@ -5310,12 +5310,15 @@ DEFINE RBRANCH 17
 
 # require_global_token function
 # Aborts if global_token is NULL before callers dereference it
+# Preserves X0, which callers may still hold (type_size, message)
 :require_global_token
+    PUSH_X0                             # Protect X0
     LOAD_W9_AHEAD                       # Using global_token
     SKIP_32_DATA
     &global_token
     LDR_X0_[X9]
     CMP_X0_TO_0                         # Check for EOF
+    POP_X0                              # Restore X0
     SKIP_INST_NE                        # Abort on EOF
     ^~Exit_Failure FBRANCH
     RETURN

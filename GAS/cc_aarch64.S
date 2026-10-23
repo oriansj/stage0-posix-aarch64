@@ -3590,10 +3590,13 @@ common_recursion:
 
 // require_global_token function
 // Aborts if global_token is NULL before callers dereference it
+// Preserves X0, which callers may still hold (type_size, message)
 require_global_token:
+    push x0                     // Protect X0
     adr x9, global_token
     ldr x0, [x9]
     cmp x0, 0
+    pop x0                      // Restore X0
     b.eq Exit_Failure
     ret
 

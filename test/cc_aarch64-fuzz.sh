@@ -58,6 +58,27 @@ check_no_crash()
 	done
 }
 
+check_compiles()
+{
+	name=$1
+	input=$2
+	for target in $targets; do
+		printf '%s' "$input" > "$tmp/$name.c"
+		set +e
+		"$QEMU" "$target" "$tmp/$name.c" "$tmp/$name.M1" >/dev/null 2>&1
+		status=$?
+		set -e
+		if [ "$status" -ne 0 ]; then
+			echo "$name failed with status $status for $target"
+			exit 1
+		fi
+	done
+}
+
+check_compiles global-pointer-index 'char* p; int main() { return p[0]; }'
+check_compiles local-pointer-index 'int main() { char* s; return s[0]; }'
+check_compiles m2libc-bootstrap-fgetc "$(cat test/valid/m2libc-bootstrap-fgetc.c)"
+
 check_no_crash unterminated-string '"'
 check_no_crash line-comment-eof 'int#main() { return 0; }'
 check_no_crash block-comment-eof '/*'
