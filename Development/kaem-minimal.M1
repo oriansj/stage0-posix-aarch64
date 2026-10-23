@@ -270,7 +270,7 @@ DEFINE RBRANCH 17
 # And aborts hard
 # DOES NOT RETURN
 :Exit_Failure
-    SET_X1_TO_1                 # All is wrong
+    SET_X0_TO_1                 # All is wrong
     SET_X8_TO_SYS_EXIT          # put the exit syscall number in x8
     SYSCALL                     # Call it a bad day
 
