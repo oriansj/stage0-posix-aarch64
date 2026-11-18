@@ -147,8 +147,7 @@ DEFINE RBRANCH 17
     SYSCALL                     # Now open that damn file
 
     CMP_X0_TO_0                 # IF NULL We couldn't open the file
-    SKIP_INST_GT                # Abort hard
-    ^~Exit_Failure FBRANCH
+    '4d0a0054'                  ; b.le Exit_Failure           # Abort hard
     LOAD_W9_AHEAD               # Set input pointer
     SKIP_32_DATA
     &script
@@ -187,8 +186,7 @@ DEFINE RBRANCH 17
 :collect_command
     ^~collect_token FCALL       # Get another token
     CMP_X0_TO_0                 # if NULL == result
-    SKIP_INST_NE                # It is a comment, don't store
-    ^~collect_command_comment FBRANCH
+    '60000054'                  ; b.eq collect_command_comment # It is a comment, don't store
 
     STR_X0_[X2]                 # tokens[i] = result
     ADD_X2_X2_8                 # i = i + 1 (adjusted for char* size)
@@ -199,20 +197,17 @@ DEFINE RBRANCH 17
     &command_done
     LDR_X0_[X9]
     CMP_X0_TO_0                 # IF 0 == command_done
-    SKIP_INST_NE                # keep looping
-    ^~collect_command RBRANCH
+    'c0feff54'                  ; b.eq collect_command        # keep looping
 
     # Deal with line comments
     CMP_X2_X1                   # if 0 < i
-    SKIP_INST_NE                # It was a comment
-    ^~main_loop RBRANCH
+    '80fcff54'                  ; b.eq main_loop              # It was a comment
 
 :collect_command_run
     ^~print_command FCALL       # print the command
     LDR_X0_[X1]                 # program = tokens[0]
     CMP_X0_TO_0                 # IF NULL == program
-    SKIP_INST_NE                # Some shit went down, abort
-    ^~Exit_Failure FBRANCH
+    'c0040054'                  ; b.eq Exit_Failure           # Some shit went down, abort
 
     PUSH_X1                     # Protect Tokens
     SET_X0_TO_17                # flags = SIGCHILD
@@ -224,10 +219,8 @@ DEFINE RBRANCH 17
     POP_X1                      # Restore Tokens
 
     CMP_X0_TO_0                 # Check fork
-    SKIP_INST_GE                # IF f == -1 abort hard
-    ^~Exit_Failure FBRANCH
-    SKIP_INST_EQ                # IF f == 0 it is child
-    ^~collect_command_parent FBRANCH
+    '8b030054'                  ; b.lt Exit_Failure           # IF f == -1 abort hard
+    '21010054'                  ; b.ne collect_command_parent # IF f == 0 it is child
 
     # Deal with child case
     SET_X8_TO_SYS_EXECVE        # EXECVE
@@ -256,8 +249,7 @@ DEFINE RBRANCH 17
     &info
     LDR_X0_[X9,24]
     CMP_X0_TO_0                 # IF 0 == status
-    SKIP_INST_NE                # Loop forever
-    ^~main_loop RBRANCH
+    'e0f7ff54'                  ; b.eq main_loop              # Loop forever
 
     # Deal with very unhappy case
     LOAD_W0_AHEAD               # Using "Subprocess error\nABORTING HARD\n"
@@ -292,8 +284,7 @@ DEFINE RBRANCH 17
     SET_X0_TO_32                # using ' '
     ^~fputc FCALL               # print it
     CMP_X1_X2                   # IF j < i
-    SKIP_INST_EQ                # otherwise keep looping
-    ^~print_command_loop RBRANCH
+    '41ffff54'                  ; b.ne print_command_loop     # otherwise keep looping
 
     SET_X0_TO_10                # using '\n'
     ^~fputc FCALL               # print it
@@ -321,20 +312,16 @@ DEFINE RBRANCH 17
 :collect_token_loop
     ^~fgetc FCALL               # c = fgetc(input);
     CMP_X0_TO_MINUS_4           # if C == EOF
-    SKIP_INST_NE                # We are done
-    ^~Done FBRANCH
+    '000f0054'                  ; b.eq Done                   # We are done
 
     CMP_X0_TO_32                # IF C == ' '
-    SKIP_INST_NE                # Space terminates token
-    ^~collect_token_done FBRANCH
+    'e0030054'                  ; b.eq collect_token_done     # Space terminates token
 
     CMP_X0_TO_9                 # IF C == '\t'
-    SKIP_INST_NE                # tab terminates token
-    ^~collect_token_done FBRANCH
+    'a0030054'                  ; b.eq collect_token_done     # tab terminates token
 
     CMP_X0_TO_10                # IF C == '\n'
-    SKIP_INST_EQ                # otherwise check next
-    ^~collect_token_string FBRANCH
+    'e1000054'                  ; b.ne collect_token_string   # otherwise check next
 
     # It is a newline
     SET_X0_TO_1                 # Using 1
@@ -346,8 +333,7 @@ DEFINE RBRANCH 17
 
 :collect_token_string
     CMP_X0_TO_34                # IF C == '\"'
-    SKIP_INST_EQ                # otherwise check next
-    ^~collect_token_comment FBRANCH
+    '61000054'                  ; b.ne collect_token_comment  # otherwise check next
 
     # It is a RAW STRING
     ^~collect_string FCALL      # Get the rest of the string
@@ -355,8 +341,7 @@ DEFINE RBRANCH 17
 
 :collect_token_comment
     CMP_X0_TO_35                # IF C == '#'
-    SKIP_INST_EQ                # otherwise check next
-    ^~collect_token_escape FBRANCH
+    '01010054'                  ; b.ne collect_token_escape   # otherwise check next
 
     # It is a line comment
     ^~collect_comment FCALL     # Read it all
@@ -369,8 +354,7 @@ DEFINE RBRANCH 17
 
 :collect_token_escape
     CMP_X0_TO_92                # IF C == '\\'
-    SKIP_INST_EQ                # otherwise just store it
-    ^~collect_token_other FBRANCH
+    '61000054'                  ; b.ne collect_token_other    # otherwise just store it
 
     # It is an escape char
     ^~fgetc FCALL               # Read the char to drop
@@ -383,8 +367,7 @@ DEFINE RBRANCH 17
 
 :collect_token_done
     CMP_X1_X2                   # IF i == 0
-    SKIP_INST_EQ                # otherwise return the token
-    ^~collect_token_good FBRANCH
+    '41000054'                  ; b.ne collect_token_good     # otherwise return the token
     SET_X1_TO_0                 # token = NULL
 
 :collect_token_good
@@ -404,12 +387,10 @@ DEFINE RBRANCH 17
 :collect_string_loop
     ^~fgetc FCALL               # C = fgetc(input)
     CMP_X0_TO_MINUS_4           # if C == EOF
-    SKIP_INST_NE                # Something went horribly wrong
-    ^~Exit_Failure RBRANCH
+    '60f6ff54'                  ; b.eq Exit_Failure           # Something went horribly wrong
 
     CMP_X0_TO_34                # IF C == '\"'
-    SKIP_INST_NE                # be done
-    ^~collect_string_done FBRANCH
+    '80000054'                  ; b.eq collect_string_done    # be done
 
     # deal with inside of string
     STR_BYTE_W0_[X2]            # target[index] = C
@@ -431,12 +412,10 @@ DEFINE RBRANCH 17
 :collect_comment_loop
     ^~fgetc FCALL               # C = fgetc(input)
     CMP_X0_TO_MINUS_4           # IF C == EOF
-    SKIP_INST_NE                # abort hard
-    ^~Exit_Failure RBRANCH
+    '00f5ff54'                  ; b.eq Exit_Failure           # abort hard
 
     CMP_X0_TO_10                # IF C == '\n'
-    SKIP_INST_EQ                # otherwise keep looping
-    ^~collect_comment_loop RBRANCH
+    '81ffff54'                  ; b.ne collect_comment_loop   # otherwise keep looping
     POP_LR
     RETURN
 
@@ -480,8 +459,7 @@ DEFINE RBRANCH 17
 
     POP_X0                      # Get either char or EOF
     CMP_X0_TO_MINUS_4           # Check for EOF
-    SKIP_INST_NE                # Return as is
-    ^~fgetc_done FBRANCH
+    '40000054'                  ; b.eq fgetc_done             # Return as is
     AND_X0_X0_0xFF              # Make it useful
 :fgetc_done
     POP_X2                      # Restore X2
@@ -498,13 +476,11 @@ DEFINE RBRANCH 17
     PUSH_X2                     # Protect X2
     SET_X1_FROM_X0              # Protect S
     CMP_X0_TO_0                 # Protect against nulls
-    SKIP_INST_NE                # Simply don't try to print them
-    ^~File_Print_Done FBRANCH
+    'e0000054'                  ; b.eq File_Print_Done        # Simply don't try to print them
 :File_Print_Loop
     LDR_BYTE_W0_[X1]            # Read byte
     CMP_X0_TO_0                 # Check for NULL
-    SKIP_INST_NE                # Stop at NULL
-    ^~File_Print_Done FBRANCH
+    '80000054'                  ; b.eq File_Print_Done        # Stop at NULL
 
     ^~fputc FCALL               # write it
     ADD_X1_X1_1                 # S = S + 1
