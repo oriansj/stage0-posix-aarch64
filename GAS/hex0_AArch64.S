@@ -18,10 +18,6 @@
     .section .text
     .global _start
 
-// Where the ELF Header is going to hit
-// Simply jump to _start
-// Our main function
-    .p2align 3
 _start:
     ldr x1, [sp,#16]             // Get the actual input name
     mov x0, #-100                // AT_FDCWD, relative to current working directory
@@ -34,157 +30,51 @@ _start:
     mov x0, #-100                // AT_FDCWD, relative to current working directory
     mov x2, #577                 // Prepare file as O_WRONLY|O_CREAT|O_TRUNC
     mov x3, #448                 // Prepare file as RWX for owner only (700 in octal)
-    mov x8, #56                  // The syscall number for openat(), aarch64 has no open()
     svc #0                       // Open file!
     mov x10, x0                  // Preserve the file pointer we were given
 
-    // Our flag for byte processing
-    mov x15, #-1
-
-    //  temp storage for the sum
-    mov x14, #0
-
-loop:
-    // Read a byte
-    bl Read_byte
-
-    // process byte
-    bl hex
-
-    // Deal with -1 values
-    cmp x0, #0
-    b.lt loop
-
-    // deal with toggle
-    cmp x15, #0
-    b.ge print
-
-    // process first byte of pair
-    mov x14, x0
-    mov x15, #0
-    b loop
-
-// process second byte of pair
-print:
-    // update the sum and store in output
-    add x0, x0, x14, lsl #4
-    adr x1, output
-    strb w0, [x1]
-
-    // flip the toggle
-    mov x15, #-1
-
-    bl write_byte
-
-    b loop
-
-hex:
-    // Purge Comment Lines (#)
-    cmp x0, #35
-    b.eq purge_comment
-
-    // Purge Comment Lines (;)
-    cmp x0, #59
-    b.eq purge_comment
-
-    // deal all ascii less than 0
-    cmp x0, #48
-    b.lt ascii_other
-
-    // deal with 0-9
-    cmp x0, #58
-    b.lt ascii_num
-
-    // deal with all ascii less than A
-    cmp x0, #65
-    b.lt ascii_other
-
-    // deal with A-F
-    cmp x0, #71
-    b.lt ascii_high
-
-    // deal with all ascii less than a
-    cmp x0, #97
-    b.lt ascii_other
-
-    // deal with a-f
-    cmp x0, #103
-    b.lt ascii_low
-
-    // The rest that remains needs to be ignored
-    b ascii_other
-
-purge_comment:
-    str lr, [sp,#-8]            // push lr
-
-loop0:
-    // Read a byte
-    bl Read_byte
-
-    // Loop if not LF
-    cmp x0, #10
-    b.ne loop0
-
-    // Otherwise return -1
-    mov x0, #-1
-
-    ldr lr, [sp, #-8]           // pop lr
-    ret
-
-ascii_num:
-    sub x0, x0, #48
-    ret
-
-ascii_low:
-    sub x0, x0, #87
-    ret
-
-ascii_high:
-    sub x0, x0, #55
-    ret
-
-ascii_other:
-    mov x0, #-1
-    ret
-
-Done:
-    // program completed Successfully
-    mov x0, #0                  // All is well
-    mov x8, #93                 // put the exit syscall number in x8
-    svc #0
-
-write_byte:
-    // Print our Hex
-    mov x0, x10                 // Where are we writing to
-    adr x1, output              // What we are writing
+    str xzr, [sp,#-16]!          // Separate input and output bytes on the stack
     mov x2, #1                  // set the size of chars we want
-    mov x8, #64                 // the syscall number for write
-    svc #0                      // call the Kernel
-    ret
+    mov w11, #0                  // Not in a comment
 
-Read_byte:
-    // Attempt to read 1 byte from input file
+pair:
+    mov w12, #1                 // Start the marker below the first hex digit
+
+read:
+   // Attempt to read 1 byte from input file
     mov x0, x9                  // Where are we reading from
-    adr x1, input               // Where to put it
-    mov x2, #1                  // set the size of chars we want
+    mov x1, sp                  // Where to put it
     mov x8, #63                 // the syscall number for read
     svc #0                      // call the Kernel
+    cbz x0, exit                // Got EOF call it done
+    ldrb w0, [sp]               // load char, unsigned so zero-extended already
+    cmp w0, #10
+    csel w11, wzr, w11, eq      // A newline ends the comment
+    cbnz w11, read              // Ignore the rest of the comment
+    subs w3, w0, #35            // Purge Comment Lines (#)
+    ccmp w3, #24, #4, ne        // Purge Comment Lines (;)
+    cset w11, eq                // Remember whether a comment starts here
+    b.eq read
+    sub w3, w0, #48             // Subtract ASCII '0'
+    cmp w3, #10
+    b.lo digit                  // deal with 0-9
+    orr w3, w0, #32             // Fold upper case to lower case
+    sub w3, w3, #97
+    cmp w3, #6
+    b.hs read                   // Ignore bytes outside a through f
+    add w3, w3, #10
 
-    cbz x0, Done                // Got EOF call it done
+digit:
+    orr w12, w3, w12, lsl #4    // Shift the marker and append the digit
+    tbz w12, #8, read           // Until the marker reaches bit 8, read another digit
+    strb w12, [sp,#1]           // Only the low byte is output
+    add x1, sp, #1              // What we are writing
+    mov x0, x10                 // Where are we writing to
+    mov x8, #64                 // the syscall number for write
+    svc #0                      // call the Kernel
+    b pair
 
-    // load byte
-    adr x0, input
-    ldrb w0, [x0]               // load char, unsigned so zero-extended already
-    ret
-
-    .section .data
-ELF_end:
-// Where we are putting our output
-output:
-    // Reserve 8bytes of Zeros
-    .quad 0
-
-// Where we get our input
-input:
-    // Reserve 8bytes of Zeros
-    .quad 0
+exit:
+   // program completed Successfully
+    mov x8, #93                 // put the exit syscall number in x8
+    svc #0
