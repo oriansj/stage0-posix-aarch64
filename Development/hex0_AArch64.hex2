@@ -94,13 +94,11 @@ B7 00                          # e_machine Indicating AArch64
 
     # Deal with -1 values
     1F0000F1                    ; CMP_X0_TO_0
-    4A000054                    ; SKIP_INST_GE
-    ^~loop 17                   ; ^~loop RBRANCH
+    ABFFFF54                    ; B.LT loop
 
     # deal with toggle
     FF0100F1                    ; CMP_X15_TO_0
-    4B000054                    ; SKIP_INST_LT
-    ^~print 14                  ; ^~print BRANCH
+    8A000054                    ; B.GE print
 
     # process first byte of pair
     EE0300AA                    ; SET_X14_FROM_X0
@@ -127,43 +125,35 @@ B7 00                          # e_machine Indicating AArch64
 :hex
     # Purge Comment Lines (#)
     1F8C00F1                    ; CMP_X0_TO_35
-    41000054                    ; SKIP_INST_NE
-    ^~purge_comment 14          ; ^~purge_comment BRANCH
+    00020054                    ; B.EQ purge_comment
 
     # Purge Comment Lines (;)
     1FEC00F1                    ; CMP_X0_TO_59
-    41000054                    ; SKIP_INST_NE
-    ^~purge_comment 14          ; ^~purge_comment BRANCH
+    C0010054                    ; B.EQ purge_comment
 
     # deal all ascii less than 0
     1FC000F1                    ; CMP_X0_TO_48
-    4A000054                    ; SKIP_INST_GE
-    ^~ascii_other 14            ; ^~ascii_other BRANCH
+    2B030054                    ; B.LT ascii_other
 
     # deal with 0-9
     1FE800F1                    ; CMP_X0_TO_58
-    4A000054                    ; SKIP_INST_GE
-    ^~ascii_num 14              ; ^~ascii_num BRANCH
+    2B020054                    ; B.LT ascii_num
 
     # deal with all ascii less than A
     1F0401F1                    ; CMP_X0_TO_65
-    4A000054                    ; SKIP_INST_GE
-    ^~ascii_other 14            ; ^~ascii_other BRANCH
+    AB020054                    ; B.LT ascii_other
 
     # deal with A-F
     1F1C01F1                    ; CMP_X0_TO_71
-    4A000054                    ; SKIP_INST_GE
-    ^~ascii_high 14             ; ^~ascii_high BRANCH
+    2B020054                    ; B.LT ascii_high
 
     # deal with all ascii less than a
     1F8401F1                    ; CMP_X0_TO_97
-    4A000054                    ; SKIP_INST_GE
-    ^~ascii_other 14            ; ^~ascii_other BRANCH
+    2B020054                    ; B.LT ascii_other
 
     # deal with a-f
     1F9C01F1                    ; CMP_X0_TO_103
-    4A000054                    ; SKIP_INST_GE
-    ^~ascii_low 14              ; ^~ascii_low BRANCH
+    6B010054                    ; B.LT ascii_low
 
     # The rest that remains needs to be ignored
     ^~ascii_other 14            ; ^~ascii_other BRANCH
@@ -177,8 +167,7 @@ B7 00                          # e_machine Indicating AArch64
 
     # Loop if not LF
     1F2800F1                    ; CMP_X0_TO_10
-    40000054                    ; SKIP_INST_EQ
-    ^~purge_comment_loop 17     ; ^~purge_comment_loop RBRANCH
+    C1FFFF54                    ; B.NE purge_comment_loop
 
     # Otherwise return -1
     00008092                    ; SET_X0_TO_MINUS_1
@@ -230,8 +219,7 @@ B7 00                          # e_machine Indicating AArch64
     010000D4                    ; SYSCALL                     # call the Kernel
 
     1F0000F1                    ; CMP_X0_TO_0                 # Got EOF call it done
-    41000054                    ; SKIP_INST_NE
-    ^~Done 17                   ; ^~Done RBRANCH
+    A0FDFF54                    ; B.EQ Done
 
     # load byte
     40000098                    ; LOAD_W0_AHEAD
