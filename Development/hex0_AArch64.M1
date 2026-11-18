@@ -57,11 +57,6 @@ DEFINE SET_X15_TO_0 0f0080d2
 DEFINE SET_X15_TO_MINUS_1 0f008092
 DEFINE SET_X0_TO_FCNTL_H_AT_FDCWD 600c8092
 
-DEFINE SKIP_INST_EQ 40000054
-DEFINE SKIP_INST_GE 4a000054
-DEFINE SKIP_INST_LT 4b000054
-DEFINE SKIP_INST_NE 41000054
-
 DEFINE SKIP_32_DATA 02000014
 
 DEFINE LOAD_W0_AHEAD 40000098
@@ -123,13 +118,11 @@ DEFINE RBRANCH 17
 
     # Deal with -1 values
     CMP_X0_TO_0
-    SKIP_INST_GE
-    ^~loop RBRANCH
+    'ABFFFF54'                  ; B.LT loop
 
     # deal with toggle
     CMP_X15_TO_0
-    SKIP_INST_LT
-    ^~print BRANCH
+    '8A000054'                  ; B.GE print
 
     # process first byte of pair
     SET_X14_FROM_X0
@@ -156,43 +149,35 @@ DEFINE RBRANCH 17
 :hex
     # Purge Comment Lines (#)
     CMP_X0_TO_35
-    SKIP_INST_NE
-    ^~purge_comment BRANCH
+    '00020054'                  ; B.EQ purge_comment
 
     # Purge Comment Lines (;)
     CMP_X0_TO_59
-    SKIP_INST_NE
-    ^~purge_comment BRANCH
+    'C0010054'                  ; B.EQ purge_comment
 
     # deal all ascii less than 0
     CMP_X0_TO_48
-    SKIP_INST_GE
-    ^~ascii_other BRANCH
+    '2B030054'                  ; B.LT ascii_other
 
     # deal with 0-9
     CMP_X0_TO_58
-    SKIP_INST_GE
-    ^~ascii_num BRANCH
+    '2B020054'                  ; B.LT ascii_num
 
     # deal with all ascii less than A
     CMP_X0_TO_65
-    SKIP_INST_GE
-    ^~ascii_other BRANCH
+    'AB020054'                  ; B.LT ascii_other
 
     # deal with A-F
     CMP_X0_TO_71
-    SKIP_INST_GE
-    ^~ascii_high BRANCH
+    '2B020054'                  ; B.LT ascii_high
 
     # deal with all ascii less than a
     CMP_X0_TO_97
-    SKIP_INST_GE
-    ^~ascii_other BRANCH
+    '2B020054'                  ; B.LT ascii_other
 
     # deal with a-f
     CMP_X0_TO_103
-    SKIP_INST_GE
-    ^~ascii_low BRANCH
+    '6B010054'                  ; B.LT ascii_low
 
     # The rest that remains needs to be ignored
     ^~ascii_other BRANCH
@@ -206,8 +191,7 @@ DEFINE RBRANCH 17
 
     # Loop if not LF
     CMP_X0_TO_10
-    SKIP_INST_EQ
-    ^~purge_comment_loop RBRANCH
+    'C1FFFF54'                  ; B.NE purge_comment_loop
 
     # Otherwise return -1
     SET_X0_TO_MINUS_1
@@ -259,8 +243,7 @@ DEFINE RBRANCH 17
     SYSCALL                     # call the Kernel
 
     CMP_X0_TO_0                 # Got EOF call it done
-    SKIP_INST_NE
-    ^~Done RBRANCH
+    'A0FDFF54'                  ; B.EQ Done
 
     # load byte
     LOAD_W0_AHEAD
